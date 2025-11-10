@@ -7,6 +7,7 @@ import numbers
 import requests
 from commands.write_payment import create_payment, update_status_to_paid
 from queries.read_payment import get_payment_by_id
+from config import STORE_MANAGER_URL
 
 def get_payment(payment_id):
     return get_payment_by_id(payment_id)
@@ -32,10 +33,30 @@ def process_payment(payment_id, credit_card_data):
     # Ensuite, faire la mise à jour de la commande dans le Store Manager (en utilisant l'order_id)
     update_result = update_status_to_paid(payment_id)
     print(f"Updated order {update_result['order_id']} to paid={update_result}")
+
+    # Notify Store Manager service to mark the order as paid
+    order_id = update_result.get("order_id")
+    store_update = None
+    if order_id:
+        try:
+            url = f"{STORE_MANAGER_URL.rstrip('/')}/orders/{order_id}"
+            print(f"Notifying Store Manager at {url} to set is_paid=true")
+            resp = requests.put(url, json={"is_paid": True}, timeout=5)
+            resp.raise_for_status()
+            
+            try:
+                store_update = resp.json()
+            except Exception:
+                store_update = {"status_code": resp.status_code, "text": resp.text}
+        except Exception as e:
+            print(f"Failed to notify store manager: {e}")
+            store_update = {"error": str(e)}
+
     result = {
-        "order_id": update_result["order_id"],
-        "payment_id": update_result["payment_id"],
-        "is_paid": update_result["is_paid"]
+        "order_id": update_result.get("order_id"),
+        "payment_id": update_result.get("payment_id"),
+        "is_paid": update_result.get("is_paid"),
+        "store_update": store_update
     }
 
     return result

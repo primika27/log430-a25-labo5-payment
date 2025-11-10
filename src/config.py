@@ -14,4 +14,7 @@ DB_PORT = int(os.getenv("DB_PORT"))
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
+# URL of the Store Manager service (used to update orders)
+# Example: http://localhost:5008
+STORE_MANAGER_URL = os.getenv("STORE_MANAGER_URL", "http://localhost:5000")
 
